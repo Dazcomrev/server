@@ -53,7 +53,6 @@ async function getTeamName(TeamId) {
     }
 }
 
-
 async function getPlayersTeam(TeamId) {
     try {
         const res = await pool.query('SELECT p."PlayerId", "FirstName", "SecondName", "ThirdName", "Photo"\
@@ -63,7 +62,7 @@ async function getPlayersTeam(TeamId) {
         let players = [];
         for (let i = 0; i < dicts.length; i = i + 1) {
             const fio = `${dicts[i]["SecondName"]} ${dicts[i]["FirstName"]} ${dicts[i]["ThirdName"]}`;
-            players.push({ 'id': dicts[i]['PlayerId'], 'fio': fio, 'photo': dicts[i]['Photo'] });
+            players.push({ 'PlayerId': dicts[i]['PlayerId'], 'FIO': fio, 'Photo': dicts[i]['Photo'] });
         }
         return players;
     } catch (err) {
@@ -104,7 +103,7 @@ async function getPlayerCard(PlayerId) {
         const age = await getPlayerAge(PlayerId);
         const pathPhoto = await getPathToPlayerPhoto(PlayerId);
         const history = await getPlayerHistoryInTeams(PlayerId);
-        const res = { 'fio': fio, 'age': age, 'pathPhoto': pathPhoto, 'history': history, };
+        const res = { 'FIO': fio, 'Age': age, 'pathPhoto': pathPhoto, 'history': history, };
         return res;
     } catch (err) {
         console.error('Ошибка при запросе к БД:', err);
@@ -160,7 +159,11 @@ async function getPlayerHistoryInTeams(PlayerId) {
         throw err;
     }
 }
-
+/*
+!!!!!!!!!!!!!!!!!!!
+Функция логирования
+!!!!!!!!!!!!!!!!!!!
+*/
 async function addLog(userId, actionType, actionDetails) {
     try {
         await pool.query(`INSERT INTO "Log" ("userId", "timestamp", "actionType", "actionDetails")\
@@ -170,7 +173,11 @@ async function addLog(userId, actionType, actionDetails) {
         throw err;
     }
 }
-
+/*
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+Функции для редактирования данных
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+*/
 async function addTeam(TeamName) {
     try {
         await pool.query(`INSERT INTO "Team" ("TeamName", "NumberWins", "NumberDefeats", "FrequencyWins")
@@ -191,11 +198,11 @@ async function removeTeam(TeamId) {
     }
 }
 
-async function editNameTeam(TeamId, TeamName) {
+async function editNameTeam(TeamId, NewTeamName) {
     try {
         await pool.query(`UPDATE "Team"
             SET "TeamName" = $2
-            WHERE "TeamId" = $1;`, [TeamId, TeamName]);
+            WHERE "TeamId" = $1;`, [TeamId, NewTeamName]);
     } catch (err) {
         console.error('Ошибка при запросе к БД:', err);
         throw err;
@@ -224,11 +231,45 @@ async function addPlayerInTeam(TeamId, PlayerId, DateAdd=null) {
     }
 }
 
-async function removePlayerFromTeam(CompositionId, DateLeft) {
+async function removePlayerFromTeam(TeamId, PlayerId, DateLeft) {
     try {
         await pool.query(`UPDATE "Composition"
-            SET "DateLeft" = $2::date
-            WHERE "CompositionId" = $1;`, [CompositionId, DateLeft]);
+            SET "DateLeft" = $3::date
+            WHERE "TeamId" = $1 AND "PlayerId" = $1;`, [TeamId, PlayerId, DateLeft]);
+    } catch (err) {
+        console.error('Ошибка при запросе к БД:', err);
+        throw err;
+    }
+}
+
+async function getTeamsForEditTeam() {
+    try {
+        const res = await pool.query('SELECT "TeamId", "TeamName"\
+            FROM "Team" ORDER BY "TeamId" ASC');
+        const teams = res.rows;
+        let teamsWithPlayers = [];
+        for (let i = 0; i < teams.length; i = i + 1) {
+            const res0 = await getPlayersTeam(teams[i].TeamId);
+            teams[i]['players'] = res0;
+        }
+        return teams;
+    } catch (err) {
+        console.error('Ошибка при запросе к БД:', err);
+        throw err;
+    }
+}
+
+async function getAllPlayers(TeamId) {
+    try {
+        const res = await pool.query('SELECT "PlayerId", "FirstName", "SecondName", "ThirdName", "Photo"\
+            FROM "Player"', []);
+        const dicts = res.rows;
+        let players = [];
+        for (let i = 0; i < dicts.length; i = i + 1) {
+            const fio = `${dicts[i]["SecondName"]} ${dicts[i]["FirstName"]} ${dicts[i]["ThirdName"]}`;
+            players.push({ 'PlayerId': dicts[i]['PlayerId'], 'FIO': fio, 'Photo': dicts[i]['Photo'] });
+        }
+        return players;
     } catch (err) {
         console.error('Ошибка при запросе к БД:', err);
         throw err;
@@ -395,6 +436,12 @@ async function editDataMatch(MatchId, WinnerId, DateBattle) {
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 */
 
+/*(async () => {
+    const data = await getAllPlayers();
+    console.log(data);
+    //const rows = await getListTeams();
+    //console.log(rows);
+})();*/
 
 /*
 (async () => {
@@ -409,6 +456,8 @@ module.exports = {
     getListTeams,
     getPlayerCard,
     addLog,
+    getTeamsForEditTeam,
+    getAllPlayers,
     addTeam,
     removeTeam,
     editNameTeam,

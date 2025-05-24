@@ -69,6 +69,105 @@ app.post('/api/log', async (req, res) => {
     }
 });
 
+const uploadNone = multer();
+
+app.get('/api/edit/team/getTeams', async (req, res) => {
+    try {
+        const result = await db.getTeamsForEditTeam();
+        console.log(result);
+        res.json(result);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Ошибка сервера' });
+    }
+});
+
+app.get('/api/edit/team/getAllPlayers', async (req, res) => {
+    try {
+        const result = await db.getAllPlayers();
+        res.json(result);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Ошибка сервера' });
+    }
+});
+
+app.post('/api/edit/team/addTeam', uploadNone.none(), async (req, res) => {
+    try {
+        const {NameTeam} = req.body;
+        if (!NameTeam) {
+            return res.status(400).json({ error: 'Ошикбка в содержании логов' });
+        }
+        await db.addTeam(NameTeam);
+
+        res.json({ message: 'Команда успешно создана', data: NameTeam });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Ошибка сервера' });
+    }
+});
+
+
+app.post('/api/edit/team/removeTeam', uploadNone.none(), async (req, res) => {
+    try {
+        const { TeamId } = req.body;
+        if (!TeamId) {
+            return res.status(400).json({ error: 'Ошикбка в содержании логов' });
+        }
+        await db.removeTeam(TeamId);
+
+        res.json({ message: 'Команда успешно удалена', data: TeamId });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Ошибка сервера' });
+    }
+});
+
+app.post('/api/edit/team/editNameTeam', uploadNone.none(), async (req, res) => {
+    try {
+        const { TeamId, NewTeamName } = req.body;
+        if (!TeamId || !NewTeamName) {
+            return res.status(400).json({ error: 'Ошикбка в содержании логов' });
+        }
+        await db.editNameTeam(TeamId, NewTeamName);
+
+        res.json({ message: 'Название команды успешно изменено', data: { TeamId: TeamId, NewTeamName: NewTeamName } });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Ошибка сервера' });
+    }
+});
+
+app.post('/api/edit/team/addPlayerInTeam', uploadNone.none(), async (req, res) => {
+    try {
+        const { TeamId, PlayerId, DateAdd } = req.body;
+        if (!TeamId || !PlayerId || !DateAdd) {
+            return res.status(400).json({ error: 'Ошикбка в содержании логов' });
+        }
+        await db.addPlayerInTeam(TeamId, PlayerId, DateAdd);
+
+        res.json({ message: 'Игрок успешно добавлен в команду', data: { TeamId: TeamId, PlayerId: PlayerId, DateAdd: DateAdd } });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Ошибка сервера' });
+    }
+});
+
+app.post('/api/edit/team/removePlayerFromTeam', uploadNone.none(), async (req, res) => {
+    try {
+        const { TeamId, PlayerId, DateLeft } = req.body;
+        if (!TeamId || !PlayerId || !DateLeft) {
+            return res.status(400).json({ error: 'Ошикбка в содержании логов' });
+        }
+        await db.removePlayerFromTeam(CompositionId, DateLeft);
+
+        res.json({ message: 'Игрок успешно удален из команды', data: { TeamId: TeamId, PlayerId: PlayerId, DateLeft: DateLeft } });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Ошибка сервера' });
+    }
+});
+
 const imagesPath = path.join(__dirname, 'public/images');
 
 app.use('/images', express.static(imagesPath));
@@ -77,10 +176,6 @@ const storage = multer.diskStorage({
     destination: (req, file, cb) => {
         cb(null, imagesPath);
     },
-    /*filename: (req, file, cb) => {
-        // Можно сохранять с оригинальным именем или генерировать уникальное
-        cb(null, file.originalname);
-    }*/
     filename: (req, file, cb) => {
       const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
       const ext = path.extname(file.originalname);
