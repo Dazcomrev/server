@@ -74,7 +74,6 @@ const uploadNone = multer();
 app.get('/api/edit/team/getTeams', async (req, res) => {
     try {
         const result = await db.getTeamsForEditTeam();
-        console.log(result);
         res.json(result);
     } catch (err) {
         console.error(err);
@@ -82,9 +81,19 @@ app.get('/api/edit/team/getTeams', async (req, res) => {
     }
 });
 
-app.get('/api/edit/team/getAllPlayers', async (req, res) => {
+app.get('/api/getAllPlayers', async (req, res) => {
     try {
         const result = await db.getAllPlayers();
+        res.json(result);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Ошибка сервера' });
+    }
+});
+
+app.get('/api/getCompetitions', async (req, res) => {
+    try {
+        const result = await db.getCompetitions();
         res.json(result);
     } catch (err) {
         console.error(err);
@@ -106,7 +115,6 @@ app.post('/api/edit/team/addTeam', uploadNone.none(), async (req, res) => {
         res.status(500).json({ error: 'Ошибка сервера' });
     }
 });
-
 
 app.post('/api/edit/team/removeTeam', uploadNone.none(), async (req, res) => {
     try {
@@ -168,6 +176,30 @@ app.post('/api/edit/team/removePlayerFromTeam', uploadNone.none(), async (req, r
     }
 });
 
+app.post('/api/edit0/player0/editDataPlayer0', uploadNone.none(), async (req, res) => {
+    try {
+        const { PlayerId, FirstName, SecondName, ThirdName, Age, Photo } = req.body;
+        if (!PlayerId || !FirstName || !SecondName || !ThirdName || !Age || !Photo) {
+            return res.status(400).json({ error: 'Ошикбка в содержании логов' });
+        }
+        //await db.editDataPlayer(PlayerId, FirstName, SecondName, ThirdName, Age, Photo);
+
+        res.json({
+            message: 'Данные игрока успешно изменены', data: {
+                PlayerId: PlayerId,
+                FirstName: FirstName,
+                SecondName: SecondName,
+                ThirdName: ThirdName,
+                Age: Age,
+                Photo: Photo
+            }
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Ошибка сервера' });
+    }
+});
+
 const imagesPath = path.join(__dirname, 'public/images');
 
 app.use('/images', express.static(imagesPath));
@@ -186,61 +218,104 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
-app.post('/api/upload-player', upload.single('Photo'), (req, res) => {
-    if (!req.file) {
-        return res.status(400).json({ error: 'Файл не загружен' });
-    }
-
-    // Имя файла, выбранное на клиенте
-    //console.log('Имя файла на клиенте:', req.file.originalname);
-
-    // Если вы передаете имя файла в теле запроса (например, req.body.filename), можно вывести и его:
-    /*
-    console.log('Имя игрока:', req.body.FirstName);
-    console.log('Фамилия игрока:', req.body.SecondName);
-    console.log('Отчество игрока:', req.body.ThirdName);
-    console.log('Возраст игрока:', req.body.Age);*/
-
-    // Отвечаем клиенту
-    res.json({ message: 'Файл успешно загружен', filename: req.file.filename });
-});
-
-app.post('/api/update-player/:id', upload.single('Photo'), async (req, res) => {
+app.post('/api/edit/player/addPlayer', upload.single('Photo'), async (req, res) => {
     try {
-        const playerId = req.params.id;
-        const FirstName = req.body.FirstName;
-        const SecondName = req.body.SecondName;
-        const ThirdName = req.body.ThirdName;
-        const Age = req.body.Age;
-        const OldPhoto = req.body.OldPhoto;
-        const newPhoto = req.file;
-
-        // Получаем имя старого фото из БД
-        //const oldPhotoFilename = await getOldPhotoFilenameById(playerId);
-
-        // Если пришло новое фото и есть старое — удаляем старое с диска
-        if (newPhoto && OldPhoto) {
-            const OldPhotoPath = path.join(imagesPath, OldPhoto);
-            console.log('OldPhotoPath:', OldPhotoPath);
-            fs.unlink(OldPhotoPath, (err) => {
-                if (err) console.error('Ошибка удаления старого фото:', err);
-                else console.log('Старое фото удалено:', OldPhoto);
-            });
+        if (!req.file) {
+            return res.status(400).json({ error: 'Файл не загружен' });
+        }
+        const Photo = req.file.filename;
+        const { FirstName, SecondName, ThirdName, Age } = req.body;
+        if (!FirstName || !SecondName || !ThirdName || !Age || !Photo) {
+            return res.status(400).json({ error: 'Ошикбка в содержании логов' });
         }
 
-        // Формируем объект для обновления
-        const updateData = {
-            FirstName,
-            SecondName,
-            ThirdName,
-            Age,
-            photo: newPhoto ? newPhoto.filename : OldPhoto
-        };
+        await db.addPlayer(FirstName, SecondName, ThirdName, Age, Photo);
 
-        // Обновляем данные игрока в БД
-        //await updatePlayerData(playerId, updateData);
+        res.json({
+            messageFile: 'Файл успешно загружен', filename: req.file.filename,
+            messageDB: 'Новый игрок успешно добавлен', data: {
+                FirstName: FirstName,
+                SecondName: SecondName,
+                ThirdName: ThirdName,
+                Age: Age,
+                Photo: Photo
+            }
+        });
 
-        res.json({ message: 'Данные обновлены', data: updateData });
+
+        // Имя файла, выбранное на клиенте
+        //console.log('Имя файла на клиенте:', req.file.originalname);
+
+        // Если вы передаете имя файла в теле запроса (например, req.body.filename), можно вывести и его:
+        /*
+        console.log('Имя игрока:', req.body.FirstName);
+        console.log('Фамилия игрока:', req.body.SecondName);
+        console.log('Отчество игрока:', req.body.ThirdName);
+        console.log('Возраст игрока:', req.body.Age);*/
+
+        // Отвечаем клиенту
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Ошибка сервера' });
+    }
+});
+
+app.post('/api/edit/player/removePlayer', uploadNone.none(), async (req, res) => {
+    try {
+        const { OldPhoto, PlayerId } = req.body;
+        if (!OldPhoto || !PlayerId) {
+            return res.status(400).json({ error: 'Ошикбка в содержании логов' });
+        }
+        const filePath = path.join(imagesPath, OldPhoto);
+        // Проверяем, существует ли файл
+        if (fs.existsSync(filePath)) {
+            // Удаляем файл
+            fs.unlinkSync(filePath);
+        } else {
+            // Можно игнорировать, если файла нет, или вернуть ошибку
+            console.warn('Файл для удаления не найден:', filePath);
+        }
+        // Удаляем игрока из базы данных (пример для MongoDB)
+        await db.removePlayer(PlayerId);
+
+        res.json({ message: 'Данные удалены', data: { PlayerId: PlayerId, OldPhoto: OldPhoto } });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Ошибка сервера' });
+    }
+});
+
+app.post('/api/edit/player/editDataPlayer', upload.single('Photo'), async (req, res) => {
+    try {
+        const NewPhoto = req.file;
+        const { PlayerId, FirstName, SecondName, ThirdName, Age, OldPhoto } = req.body;
+
+        // Если пришло новое фото и есть старое — удаляем старое с диска
+        if (!PlayerId || !FirstName || !SecondName || !ThirdName || !Age || !OldPhoto) {
+            return res.status(400).json({ error: 'Ошикбка в содержании логов' });
+        }
+        if (NewPhoto && OldPhoto) {
+            const OldPhotoPath = path.join(imagesPath, OldPhoto);
+            //console.log('OldPhotoPath:', OldPhotoPath);
+            fs.unlink(OldPhotoPath, (err) => {
+                if (err) console.error('Ошибка удаления старого фото:', err);
+                //else console.log('Старое фото удалено:', OldPhoto);
+            });
+        }
+        const Photo = NewPhoto ? NewPhoto.filename : OldPhoto;
+        await db.editDataPlayer(PlayerId, FirstName, SecondName, ThirdName, Age, Photo);
+
+        res.json({
+            message: 'Данные игрока успешно изменены', data: {
+                PlayerId: PlayerId,
+                FirstName: FirstName,
+                SecondName: SecondName,
+                ThirdName: ThirdName,
+                Age: Age,
+                Photo: Photo
+            }
+        });
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Ошибка сервера' });

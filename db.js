@@ -259,17 +259,37 @@ async function getTeamsForEditTeam() {
     }
 }
 
-async function getAllPlayers(TeamId) {
+async function getAllPlayers() {
     try {
-        const res = await pool.query('SELECT "PlayerId", "FirstName", "SecondName", "ThirdName", "Photo"\
+        const res = await pool.query('SELECT "PlayerId", "FirstName", "SecondName", "ThirdName", "Photo", "Age"\
             FROM "Player"', []);
         const dicts = res.rows;
         let players = [];
         for (let i = 0; i < dicts.length; i = i + 1) {
             const fio = `${dicts[i]["SecondName"]} ${dicts[i]["FirstName"]} ${dicts[i]["ThirdName"]}`;
-            players.push({ 'PlayerId': dicts[i]['PlayerId'], 'FIO': fio, 'Photo': dicts[i]['Photo'] });
+            players.push({ 'PlayerId': dicts[i]['PlayerId'], 'FIO': fio, 'Photo': dicts[i]['Photo'], 'Age': dicts[i]['Age'] });
         }
         return players;
+    } catch (err) {
+        console.error('Ошибка при запросе к БД:', err);
+        throw err;
+    }
+}
+
+async function getCompetitions() {
+    try {
+        const res = await pool.query(`SELECT "CompetitionId", "CompetitionName", TO_CHAR("DateStart", 'DD.MM.YYYY') AS "DateStart"
+            FROM "Competition"`, []);
+        const dicts = res.rows;
+        
+        for (let i = 0; i < dicts.length; i = i + 1) {
+            const res0 = await pool.query(`SELECT t."TeamId", "TeamName", "Place"
+            FROM "Competition" c JOIN "TeamInCompetition" tic ON c."CompetitionId" = tic."CompetitionId"
+            JOIN "Team" t ON t."TeamId" = tic."TeamId"
+            WHERE c."CompetitionId" = $1`, [dicts[i]['CompetitionId']]);
+            dicts[i]['teams'] = res0.rows;
+        }
+        return dicts;
     } catch (err) {
         console.error('Ошибка при запросе к БД:', err);
         throw err;
@@ -437,7 +457,7 @@ async function editDataMatch(MatchId, WinnerId, DateBattle) {
 */
 
 /*(async () => {
-    const data = await getAllPlayers();
+    const data = await getCompetitions();
     console.log(data);
     //const rows = await getListTeams();
     //console.log(rows);
@@ -466,6 +486,7 @@ module.exports = {
     addPlayer,
     removePlayer,
     editDataPlayer,
+    getCompetitions,
     addCompetition,
     removeCompetition,
     editDataCompetition,
