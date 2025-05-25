@@ -91,9 +91,19 @@ app.get('/api/getAllPlayers', async (req, res) => {
     }
 });
 
-app.get('/api/getCompetitions', async (req, res) => {
+app.get('/api/getCompetitionsForEditCompetition', async (req, res) => {
     try {
-        const result = await db.getCompetitions();
+        const result = await db.getCompetitionsForEditCompetition();
+        res.json(result);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Ошибка сервера' });
+    }
+});
+
+app.get('/api/getCompetitionsForEditMatch', async (req, res) => {
+    try {
+        const result = await db.getCompetitionsForEditMatch();
         res.json(result);
     } catch (err) {
         console.error(err);
@@ -170,30 +180,6 @@ app.post('/api/edit/team/removePlayerFromTeam', uploadNone.none(), async (req, r
         await db.removePlayerFromTeam(CompositionId, DateLeft);
 
         res.json({ message: 'Игрок успешно удален из команды', data: { TeamId: TeamId, PlayerId: PlayerId, DateLeft: DateLeft } });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: 'Ошибка сервера' });
-    }
-});
-
-app.post('/api/edit0/player0/editDataPlayer0', uploadNone.none(), async (req, res) => {
-    try {
-        const { PlayerId, FirstName, SecondName, ThirdName, Age, Photo } = req.body;
-        if (!PlayerId || !FirstName || !SecondName || !ThirdName || !Age || !Photo) {
-            return res.status(400).json({ error: 'Ошикбка в содержании логов' });
-        }
-        //await db.editDataPlayer(PlayerId, FirstName, SecondName, ThirdName, Age, Photo);
-
-        res.json({
-            message: 'Данные игрока успешно изменены', data: {
-                PlayerId: PlayerId,
-                FirstName: FirstName,
-                SecondName: SecondName,
-                ThirdName: ThirdName,
-                Age: Age,
-                Photo: Photo
-            }
-        });
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Ошибка сервера' });
@@ -316,6 +302,108 @@ app.post('/api/edit/player/editDataPlayer', upload.single('Photo'), async (req, 
                 Photo: Photo
             }
         });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Ошибка сервера' });
+    }
+});
+
+app.post('/api/edit/competition/addCompetition', uploadNone.none(), async (req, res) => {
+    try {
+        const { CompetitionName, DateStart } = req.body;
+        if (!CompetitionName || !DateStart) {
+            return res.status(400).json({ error: 'Ошикбка в содержании логов' });
+        }
+        await db.addCompetition(CompetitionName, DateStart);
+
+        res.json({ message: 'Соревнование успешно создано', data: { CompetitionName, DateStart } });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Ошибка сервера' });
+    }
+});
+
+app.post('/api/edit/competition/removeCompetition', uploadNone.none(), async (req, res) => {
+    try {
+        const { CompetitionId } = req.body;
+        if (!CompetitionId) {
+            return res.status(400).json({ error: 'Ошикбка в содержании логов' });
+        }
+        await db.removeCompetition(CompetitionId);
+
+        res.json({ message: 'Соревнование успешно удалено', data: CompetitionId });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Ошибка сервера' });
+    }
+});
+
+app.post('/api/edit/competition/editDataCompetition', uploadNone.none(), async (req, res) => {
+    try {
+        const { CompetitionId, CompetitionName, DateStart } = req.body;
+        if (!CompetitionId || !CompetitionName || !DateStart) {
+            return res.status(400).json({ error: 'Ошикбка в содержании логов' });
+        }
+        await db.editDataCompetition(CompetitionId, CompetitionName, DateStart);
+
+        res.json({ message: 'Данные соревнования успешно изменены', data: { CompetitionId, CompetitionName, DateStart } });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Ошибка сервера' });
+    }
+});
+
+app.post('/api/edit/competition/addTeamInCompetition', async (req, res) => {
+    try {
+        console.log(req.body);
+        const { entries, CompetitionId } = req.body;
+        if (!CompetitionId || !entries) {
+            return res.status(400).json({ error: 'Ошикбка в содержании логов' });
+        }
+        let parsedEntries;
+        try {
+            parsedEntries = JSON.parse(entries);
+        } catch (parseErr) {
+            return res.status(400).json({ error: 'Некорректный формат entries. Ожидается JSON-массив.' });
+        }
+
+        if (!Array.isArray(parsedEntries)) {
+            return res.status(400).json({ error: 'entries должен быть массивом' });
+        }
+
+        await db.addTeamInCompetition(parsedEntries, CompetitionId);
+
+        res.json({ message: 'Команда успешно добавлена в соревнование', data: { entries, CompetitionId } });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Ошибка сервера' });
+    }
+});
+
+app.post('/api/edit/competition/removeTeamFromCompetition', uploadNone.none(), async (req, res) => {
+    try {
+        const { TeamId, CompetitionId } = req.body;
+        if (!CompetitionId || !TeamId) {
+            return res.status(400).json({ error: 'Ошикбка в содержании логов' });
+        }
+        await db.removeTeamFromCompetition(TeamId, CompetitionId);
+
+        res.json({ message: 'Команда успешно удалена из соревнования', data: { TeamId, CompetitionId } });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Ошибка сервера' });
+    }
+});
+
+app.post('/api/edit/competition/editTeamPlaces', uploadNone.none(), async (req, res) => {
+    try {
+        const { TeamId, CompetitionId, Place } = req.body;
+        if (!CompetitionId || !TeamId || !Place) {
+            return res.status(400).json({ error: 'Ошикбка в содержании логов' });
+        }
+        await db.editTeamPlaces(TeamId, CompetitionId, Place);
+
+        res.json({ message: 'Место команды в соревновании успешно изменено', data: { TeamId, CompetitionId, Place } });
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Ошибка сервера' });
