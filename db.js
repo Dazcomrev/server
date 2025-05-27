@@ -203,7 +203,10 @@ async function getAllPlayers() {
         const dicts = res.rows;
         let players = [];
         for (let i = 0; i < dicts.length; i = i + 1) {
-            const fio = `${dicts[i]["SecondName"]} ${dicts[i]["FirstName"]} ${dicts[i]["ThirdName"]}`;
+            const fio = dicts[i]["ThirdName"] ?
+                `${dicts[i]["SecondName"]} ${dicts[i]["FirstName"]} ${dicts[i]["ThirdName"]}`
+                :
+                `${dicts[i]["SecondName"]} ${dicts[i]["FirstName"]}`;
             players.push({ 'PlayerId': dicts[i]['PlayerId'], 'FIO': fio, 'Photo': dicts[i]['Photo'], 'Age': dicts[i]['Age'] });
         }
         return players;
@@ -238,7 +241,7 @@ async function getCompetitionsForEditMatch() {
         const competitions = await getCompetitionsForEditCompetition();
 
         for (let i = 0; i < competitions.length; i = i + 1) {
-            const res = await pool.query(`SELECT "MatchId", "WinnerId", TO_CHAR("DateMatch", 'DD.MM.YYYY') AS "DateMatch"
+            const res = await pool.query(`SELECT "MatchId", "WinnerId", TO_CHAR("DateMatch", 'DD.MM.YYYY') AS "DateMatch", "HaveWinner"
             FROM "Competition" c JOIN "Match" m ON c."CompetitionId" = m."CompetitionId"
             WHERE c."CompetitionId" = $1`, [competitions[i]['CompetitionId']]);
             const dicts = res.rows;
@@ -261,6 +264,7 @@ async function getCompetitionsForEditMatch() {
         throw err;
     }
 }
+
 //EditTeam
 async function addTeam(TeamName) {
     try {
@@ -329,8 +333,13 @@ async function removePlayerFromTeam(TeamId, PlayerId, DateLeft) {
 //EditPlayer
 async function addPlayer(FirstName, SecondName, ThirdName, Age, Photo) {
     try {
-        await pool.query(`INSERT INTO "Player" ("FirstName", "SecondName", "ThirdName", "Age", "Photo")
+        if (ThirdName == '') {
+            await pool.query(`INSERT INTO "Player" ("FirstName", "SecondName", "ThirdName", "Age", "Photo")
+            VALUES ($1, $2, NULL, $3, $4);`, [FirstName, SecondName, Age, Photo]);
+        } else {
+            await pool.query(`INSERT INTO "Player" ("FirstName", "SecondName", "ThirdName", "Age", "Photo")
             VALUES ($1, $2, $3, $4, $5);`, [FirstName, SecondName, ThirdName, Age, Photo]);
+        }
     } catch (err) {
         console.error('Ошибка при запросе к БД:', err);
         throw err;
@@ -349,13 +358,24 @@ async function removePlayer(PlayerId) {
 
 async function editDataPlayer(PlayerId, FirstName, SecondName, ThirdName, Age, Photo) {
     try {
-        await pool.query(`UPDATE "Player"
+        
+        if (ThirdName == '') {
+            await pool.query(`UPDATE "Player"
+            SET "FirstName" = $2,
+                "SecondName" = $3,
+                "ThirdName" = NULL,
+                "Age" = $4,
+                "Photo" = $5
+            WHERE "PlayerId" = $1;`, [PlayerId, FirstName, SecondName, Age, Photo]);
+        } else {
+            await pool.query(`UPDATE "Player"
             SET "FirstName" = $2,
                 "SecondName" = $3,
                 "ThirdName" = $4,
                 "Age" = $5,
                 "Photo" = $6
             WHERE "PlayerId" = $1;`, [PlayerId, FirstName, SecondName, ThirdName, Age, Photo]);
+        }
     } catch (err) {
         console.error('Ошибка при запросе к БД:', err);
         throw err;
@@ -418,23 +438,70 @@ async function addTeamInCompetition(entries, CompetitionId) {
     }
 }
 
-async function removeTeamFromCompetition(TeamId, CompetitionId) {
+async function removeTeamFromCompetition(CompetitionId, entries) {
     try {
-        await pool.query(`DELETE FROM "TeamInCompetition"
-            WHERE "TeamId" = $1 AND "CompetitionId" = $2;`, [TeamId, CompetitionId]);
+        if (!Array.isArray(entries)) {
+            throw new TypeError('Параметр entries должен быть массивом');
+        }
+        if (entries.length === 0) {
+            throw new Error('Данных для удаления нет');
+        }
+
+        // Формируем условия для удаления: (TeamId = $1 AND CompetitionId = $2) OR ...
+        const conditions = [];
+        const values = [];
+
+        entries.forEach((entry, i) => {
+            const idx = i * 2;
+            values.push(entry.TeamId, CompetitionId);
+            conditions.push(`("TeamId" = $${idx + 1} AND "CompetitionId" = $${idx + 2})`);
+        });
+
+        const query = `DELETE FROM "TeamInCompetition" WHERE ${conditions.join(' OR ')};`;
+
+        await pool.query(query, values);
     } catch (err) {
-        console.error('Ошибка при запросе к БД:', err);
+        console.error('Ошибка при удалении из БД:', err);
         throw err;
     }
 }
 
-async function editTeamPlaces(TeamId, CompetitionId, Place) {
+async function editTeamPlaces(CompetitionId, entries) {
     try {
-        await pool.query(`UPDATE "TeamInCompetition"
-            SET "Place" = $3
-            WHERE "TeamId" = $1 AND "CompetitionId" = $2;`, [TeamId, CompetitionId, Place]);
+        if (!Array.isArray(entries)) {
+            throw new TypeError('Параметр entries должен быть массивом');
+        }
+        if (entries.length === 0) {
+            throw new Error('Данных для обновления нет');
+        }
+
+        // Построим запрос с использованием CASE для обновления нескольких записей за один запрос
+        // Обновляем поле "Place" по ключам TeamId и CompetitionId
+
+        // Сначала собираем параметры
+        const values = [];
+        const cases = [];
+        const keys = [];
+
+        entries.forEach((entry, i) => {
+            // Параметры для CASE
+            values.push(entry.Place, entry.TeamId, CompetitionId);
+            cases.push(`WHEN "TeamId" = $${i * 3 + 2} AND "CompetitionId" = $${i * 3 + 3} THEN $${i * 3 + 1}`);
+            keys.push(`("TeamId" = $${i * 3 + 2} AND "CompetitionId" = $${i * 3 + 3})`);
+        });
+
+        const query = `
+      UPDATE "TeamInCompetition"
+      SET "Place" = CASE
+        ${cases.join('\n')}
+        ELSE "Place"
+      END
+      WHERE ${keys.join(' OR ')};
+    `;
+
+        await pool.query(query, values);
     } catch (err) {
-        console.error('Ошибка при запросе к БД:', err);
+        console.error('Ошибка при обновлении в БД:', err);
         throw err;
     }
 }
@@ -450,20 +517,19 @@ async function insertTeamInMatch(TeamId, MatchId, Score) {
     }
 }
 
-async function addMatch(CompetitionId, TeamId1, TeamId2, WinnerId = null, DateMatch, Score1, Score2) {
+async function addMatch(CompetitionId, TeamId1, TeamId2, WinnerId, DateMatch, Score1, Score2) {
     try {
         let res = null;
-        if (!WinnerId) {
-            res = await pool.query(`INSERT INTO "Match" ("CompetitionId", "DateMatch")
-            VALUES ($1, $2::date)
-            RETURNING "MatchId";`, [CompetitionId, DateMatch]);
+        if (WinnerId == 0) {
+            res = await pool.query(`INSERT INTO "Match" ("CompetitionId", "WinnerId", "DateMatch", "HaveWinner")
+            VALUES ($1, $2, $3::date, FALSE)
+            RETURNING "MatchId";`, [CompetitionId, TeamId1, DateMatch]);
         } else {
-            res = await pool.query(`INSERT INTO "Match" ("CompetitionId", "WinnerId", "DateMatch")
-            VALUES ($1, $2, $3::date)
+            res = await pool.query(`INSERT INTO "Match" ("CompetitionId", "WinnerId", "DateMatch", "HaveWinner")
+            VALUES ($1, $2, $3::date, TRUE)
             RETURNING "MatchId";`, [CompetitionId, WinnerId, DateMatch]);
         }
         const MatchId = res.rows[0].MatchId;
-        console.log(MatchId);
         await insertTeamInMatch(TeamId1, MatchId, Score1);
         await insertTeamInMatch(TeamId2, MatchId, Score2);
     } catch (err) {
@@ -485,7 +551,7 @@ async function removeMatch(MatchId) {
 async function updateTeamInMatch(TeamId, MatchId, Score) {
     try {
         await pool.query(`UPDATE "TeamInMatch"
-            SET "Score" = 
+            SET "Score" = $3
             WHERE "TeamId" = $1 AND "MatchId" = $2;`, [TeamId, MatchId, Score]);
     } catch (err) {
         console.error('Ошибка при запросе к БД:', err);
@@ -495,10 +561,19 @@ async function updateTeamInMatch(TeamId, MatchId, Score) {
 
 async function editDataMatch(MatchId, WinnerId, DateMatch, TeamId1, TeamId2, Score1, Score2) {
     try {
-        await pool.query(`UPDATE "Match"
-            SET "WinnerId" = $2,
-                "DateMatch" = $3::date
-            WHERE "MatchId" = $1;`, [MatchId, WinnerId, DateMatch]);
+        if (WinnerId == 0) {
+            await pool.query(`UPDATE "Match"
+                SET "WinnerId" = $2,
+                    "DateMatch" = $3::date,
+                    "HaveWinner" = FALSE
+                WHERE "MatchId" = $1;`, [MatchId, TeamId1, DateMatch]);
+        } else {
+            await pool.query(`UPDATE "Match"
+                SET "WinnerId" = $2,
+                    "DateMatch" = $3::date,
+                    "HaveWinner" = TRUE
+                WHERE "MatchId" = $1;`, [MatchId, WinnerId, DateMatch]);
+        }
         await updateTeamInMatch(TeamId1, MatchId, Score1);
         await updateTeamInMatch(TeamId2, MatchId, Score2);
     } catch (err) {
