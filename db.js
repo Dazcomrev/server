@@ -73,11 +73,33 @@ async function getPlayersTeam(TeamId) {
 
 async function getHistoryTeam(TeamId) {
     try {
-        const res = await pool.query(`SELECT "CompetitionName", TO_CHAR("DateStart", 'DD.MM.YYYY') AS "DateStart", "Place"
+        const res = await pool.query(`SELECT c."CompetitionId", "CompetitionName", TO_CHAR("DateStart", 'DD.MM.YYYY') AS "DateStart", "Place"
             FROM "Team" t JOIN "TeamInCompetition" tic ON tic."TeamId" = t."TeamId"
             JOIN "Competition" c ON tic."CompetitionId" = c."CompetitionId"
-            WHERE t."TeamId" = $1;`, [TeamId]);
-        return res.rows;
+            WHERE t."TeamId" = $1
+            ORDER BY "DateStart" DESC, "CompetitionId" DESC;`, [TeamId]);
+
+        const competitions = res.rows;
+
+        for (let i = 0; i < competitions.length; i = i + 1) {
+            const res = await pool.query(`SELECT "MatchId", "WinnerId", TO_CHAR("DateMatch", 'DD.MM.YYYY') AS "DateMatch", "HaveWinner"
+            FROM "Competition" c JOIN "Match" m ON c."CompetitionId" = m."CompetitionId"
+            WHERE c."CompetitionId" = $1`, [competitions[i]['CompetitionId']]);
+            const dicts = res.rows;
+            let matchs = [];
+            for (let j = 0; j < dicts.length; j = j + 1) {
+                const res0 = await pool.query(`SELECT "TeamId", "Score"
+                FROM "TeamInMatch" tim
+                WHERE tim."MatchId" = $1`, [dicts[j]['MatchId']]);
+                const TS = res0.rows;
+                dicts[j]['Team1'] = TS[0].TeamId;
+                dicts[j]['Score1'] = TS[0].Score;
+                dicts[j]['Team2'] = TS[1].TeamId;
+                dicts[j]['Score2'] = TS[1].Score;
+            }
+            competitions[i]['matchs'] = dicts;
+        }
+        return competitions;
     } catch (err) {
         console.error('Ошибка при запросе к БД:', err);
         throw err;
@@ -583,7 +605,7 @@ async function editDataMatch(MatchId, WinnerId, DateMatch, TeamId1, TeamId2, Sco
 }
 
 /*(async () => {
-    const data = await getCompetitionsForEditMatch();
+    const data = await getHistoryTeam(1);
     console.log(data);
     //const rows = await getListTeams();
     //console.log(rows);
