@@ -241,7 +241,8 @@ async function getAllPlayers() {
 async function getCompetitionsForEditCompetition() {
     try {
         const res = await pool.query(`SELECT "CompetitionId", "CompetitionName", TO_CHAR("DateStart", 'DD.MM.YYYY') AS "DateStart"
-            FROM "Competition"`, []);
+            FROM "Competition"
+            ORDER BY "DateStart" DESC`, []);
         const dicts = res.rows;
 
         for (let i = 0; i < dicts.length; i = i + 1) {
@@ -265,7 +266,8 @@ async function getCompetitionsForEditMatch() {
         for (let i = 0; i < competitions.length; i = i + 1) {
             const res = await pool.query(`SELECT "MatchId", "WinnerId", TO_CHAR("DateMatch", 'DD.MM.YYYY') AS "DateMatch", "HaveWinner"
             FROM "Competition" c JOIN "Match" m ON c."CompetitionId" = m."CompetitionId"
-            WHERE c."CompetitionId" = $1`, [competitions[i]['CompetitionId']]);
+            WHERE c."CompetitionId" = $1
+            ORDER BY "DateMatch" DESC`, [competitions[i]['CompetitionId']]);
             const dicts = res.rows;
             let matchs = [];
             for (let j = 0; j < dicts.length; j = j + 1) {
