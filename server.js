@@ -15,8 +15,6 @@ app.use(cors({
     credentials: true
 }));
 
-app.options('*', cors()); // Обработка preflight-запросов
-
 app.use(express.json());
 
 // Пример API: получить список команд
