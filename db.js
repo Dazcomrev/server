@@ -10,6 +10,23 @@ const pool = new Pool({
     port: 5432,*/
 });
 
+const net = require('net');
+
+const options = {
+    host: '2a05:d016:571:a404:8c75:ebaa:c0c2:fd58', // IPv6 адрес вашей БД
+    port: 5432,
+    family: 6 // IPv6
+};
+
+const socket = net.createConnection(options, () => {
+    console.log('IPv6 connection successful');
+    socket.end();
+});
+
+socket.on('error', (err) => {
+    console.error('IPv6 connection error:', err.message);
+});
+
 // Для адекватного отображения даты
 //.toISOString().split('T')[0]
 
