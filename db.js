@@ -1,10 +1,12 @@
 const { Pool } = require('pg');
 const pool = new Pool({
-    user: 'postgres',
+    connectionString: process.env.DATABASE_URL || 'postgresql://postgres:123456@localhost:5432/EsportInCompetition',
+    ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false,
+    /*user: 'postgres',
     host: 'localhost',
     database: 'EsportInCompetition',
     password: '123456',
-    port: 5432,
+    port: 5432,*/
 });
 
 // Для адекватного отображения даты
