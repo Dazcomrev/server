@@ -10,7 +10,7 @@ const PORT = process.env.PORT || 5000;
 
 // Разрешаем запросы с фронтенда (порт 3000)
 app.use(cors({
-    origin: 'http://localhost:3000',
+    origin: 'https://aesthetic-creponne-ffd0c8.netlify.app',
 }));
 
 app.use(express.json());
