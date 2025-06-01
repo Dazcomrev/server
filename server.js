@@ -15,6 +15,17 @@ app.use(cors({
     credentials: true
 }));
 
+app.use((req, res, next) => {
+    if (req.method === 'OPTIONS') {
+        res.header('Access-Control-Allow-Origin', 'https://aesthetic-creponne-ffd0c8.netlify.app');
+        res.header('Access-Control-Allow-Methods', 'GET,POST');
+        res.header('Access-Control-Allow-Headers', 'Content-Type');
+        res.header('Access-Control-Allow-Credentials', 'true');
+        return res.sendStatus(204);
+    }
+    next();
+});
+
 app.use(express.json());
 
 // Пример API: получить список команд
