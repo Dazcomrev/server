@@ -12,6 +12,7 @@ const PORT = 'https://server-production-ff27.up.railway.app/' || 5000;
 app.use(cors({
     origin: 'https://aesthetic-creponne-ffd0c8.netlify.app',
     methods: ['GET', 'POST'],
+    credentials: true
 }));
 
 app.use(express.json());
