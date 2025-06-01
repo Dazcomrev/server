@@ -6,7 +6,7 @@ const path = require('path');
 const fs = require('fs');
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = 'https://server-production-ff27.up.railway.app/' || 5000;
 
 // Разрешаем запросы с фронтенда (порт 3000)
 app.use(cors({
@@ -467,6 +467,6 @@ app.post('/api/edit/match/editDataMatch', uploadNone.none(), async (req, res) =>
     }
 });
 
-app.listen(PORT, () => {
-    console.log(`Backend сервер запущен на http://localhost:${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Backend сервер запущен на port:${PORT}`);
 });
