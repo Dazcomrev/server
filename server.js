@@ -6,7 +6,7 @@ const path = require('path');
 const fs = require('fs');
 
 const app = express();
-const PORT = 'https://server-production-ff27.up.railway.app/' || 5000;
+const PORT = process.env.PORT || 5000;
 
 // Разрешаем запросы с фронтенда (порт 3000)
 app.use(cors({
