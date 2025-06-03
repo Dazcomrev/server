@@ -190,7 +190,7 @@ app.post('/api/edit/team/removePlayerFromTeam', uploadNone.none(), async (req, r
         if (!TeamId || !PlayerId || !DateLeft) {
             return res.status(400).json({ error: 'Ошикбка в содержании логов' });
         }
-        await db.removePlayerFromTeam(CompositionId, DateLeft);
+        await db.removePlayerFromTeam(TeamId, PlayerId, DateLeft);
 
         res.json({ message: 'Игрок успешно удален из команды', data: { TeamId: TeamId, PlayerId: PlayerId, DateLeft: DateLeft } });
     } catch (err) {

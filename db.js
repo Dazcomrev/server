@@ -1,6 +1,6 @@
 const { Pool } = require('pg');
 const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,//'postgresql://postgres:123456@db.yvpdbfltdhkgyleomnkz.supabase.co:5432/postgres',//'postgresql://postgres:123456@localhost:5432/EsportInCompetition',
+    connectionString: process.env.DATABASE_URL,//'postgresql://postgres.yvpdbfltdhkgyleomnkz:123456@aws-0-eu-north-1.pooler.supabase.com:6543/postgres',//'postgresql://postgres:123456@localhost:5432/EsportInCompetition',
     ssl: { rejectUnauthorized: false }
     //process.env.DATABASE_URL ? { rejectUnauthorized: false } : false,
     /*user: 'postgres',
@@ -8,23 +8,6 @@ const pool = new Pool({
     database: 'EsportInCompetition',
     password: '123456',
     port: 5432,*/
-});
-
-const net = require('net');
-
-const options = {
-    host: '2a05:d016:571:a404:8c75:ebaa:c0c2:fd58', // IPv6 адрес вашей БД
-    port: 5432,
-    family: 6 // IPv6
-};
-
-const socket = net.createConnection(options, () => {
-    console.log('IPv6 connection successful');
-    socket.end();
-});
-
-socket.on('error', (err) => {
-    console.error('IPv6 connection error:', err.message);
 });
 
 // Для адекватного отображения даты
