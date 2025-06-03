@@ -350,7 +350,7 @@ async function removePlayerFromTeam(TeamId, PlayerId, DateLeft) {
     try {
         await pool.query(`UPDATE "Composition"
             SET "DateLeft" = $3::date
-            WHERE "TeamId" = $1 AND "PlayerId" = $1;`, [TeamId, PlayerId, DateLeft]);
+            WHERE "TeamId" = $1 AND "PlayerId" = $2;`, [TeamId, PlayerId, DateLeft]);
     } catch (err) {
         console.error('Ошибка при запросе к БД:', err);
         throw err;
