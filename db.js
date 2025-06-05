@@ -547,14 +547,20 @@ async function insertTeamInMatch(TeamId, MatchId, Score) {
 async function addMatch(CompetitionId, TeamId1, TeamId2, WinnerId, DateMatch, Score1, Score2) {
     try {
         let res = null;
+        let LoserId = 0;
+        if (WinnerId == TeamId1) {
+            LoserId = TeamId2
+        } else if (WinnerId == TeamId2) {
+            LoserId = TeamId1
+        }
         if (WinnerId == 0) {
-            res = await pool.query(`INSERT INTO "Match" ("CompetitionId", "WinnerId", "DateMatch", "HaveWinner")
-            VALUES ($1, $2, $3::date, FALSE)
-            RETURNING "MatchId";`, [CompetitionId, TeamId1, DateMatch]);
+            res = await pool.query(`INSERT INTO "Match" ("CompetitionId", "WinnerId", "DateMatch", "HaveWinner", "LoserId")
+            VALUES ($1, $2, $3::date, FALSE, $4)
+            RETURNING "MatchId";`, [CompetitionId, TeamId1, DateMatch, TeamId2]);
         } else {
-            res = await pool.query(`INSERT INTO "Match" ("CompetitionId", "WinnerId", "DateMatch", "HaveWinner")
-            VALUES ($1, $2, $3::date, TRUE)
-            RETURNING "MatchId";`, [CompetitionId, WinnerId, DateMatch]);
+            res = await pool.query(`INSERT INTO "Match" ("CompetitionId", "WinnerId", "DateMatch", "HaveWinner", "LoserId")
+            VALUES ($1, $2, $3::date, TRUE, $4)
+            RETURNING "MatchId";`, [CompetitionId, WinnerId, DateMatch, LoserId]);
         }
         const MatchId = res.rows[0].MatchId;
         await insertTeamInMatch(TeamId1, MatchId, Score1);
@@ -588,18 +594,26 @@ async function updateTeamInMatch(TeamId, MatchId, Score) {
 
 async function editDataMatch(MatchId, WinnerId, DateMatch, TeamId1, TeamId2, Score1, Score2) {
     try {
+        let LoserId = 0;
+        if (WinnerId == TeamId1) {
+            LoserId = TeamId2
+        } else if (WinnerId == TeamId2) {
+            LoserId = TeamId1
+        }
         if (WinnerId == 0) {
             await pool.query(`UPDATE "Match"
                 SET "WinnerId" = $2,
                     "DateMatch" = $3::date,
-                    "HaveWinner" = FALSE
-                WHERE "MatchId" = $1;`, [MatchId, TeamId1, DateMatch]);
+                    "HaveWinner" = FALSE,
+                    "LoserId" = $4
+                WHERE "MatchId" = $1;`, [MatchId, TeamId1, DateMatch, TeamId2]);
         } else {
             await pool.query(`UPDATE "Match"
                 SET "WinnerId" = $2,
                     "DateMatch" = $3::date,
-                    "HaveWinner" = TRUE
-                WHERE "MatchId" = $1;`, [MatchId, WinnerId, DateMatch]);
+                    "HaveWinner" = TRUE,
+                    "LoserId" = $4
+                WHERE "MatchId" = $1;`, [MatchId, WinnerId, DateMatch, LoserId]);
         }
         await updateTeamInMatch(TeamId1, MatchId, Score1);
         await updateTeamInMatch(TeamId2, MatchId, Score2);
