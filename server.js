@@ -8,16 +8,17 @@ const fs = require('fs');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Разрешаем запросы с фронтенда (порт 3000)
+const webURL = 'https://aesthetic-creponne-ffd0c8.netlify.app';
+
 app.use(cors({
-    origin: 'https://aesthetic-creponne-ffd0c8.netlify.app',
+    origin: webURL,
     methods: ['GET', 'POST'],
     credentials: true
 }));
 
 app.use((req, res, next) => {
     if (req.method === 'OPTIONS') {
-        res.header('Access-Control-Allow-Origin', 'https://aesthetic-creponne-ffd0c8.netlify.app');
+        res.header('Access-Control-Allow-Origin', webURL);
         res.header('Access-Control-Allow-Methods', 'GET,POST');
         res.header('Access-Control-Allow-Headers', 'Content-Type');
         res.header('Access-Control-Allow-Credentials', 'true');
@@ -28,7 +29,6 @@ app.use((req, res, next) => {
 
 app.use(express.json());
 
-// Пример API: получить список команд
 app.get('/api/listTeams', async (req, res) => {
     try {
         const result = await db.getListTeams();
@@ -41,7 +41,7 @@ app.get('/api/listTeams', async (req, res) => {
 
 app.get('/api/teamCard/:teamId', async (req, res) => {
     try {
-        const teamId = req.params.teamId; // получаем переменную из URL
+        const teamId = req.params.teamId;
         const team = await db.getTeamCard(teamId);
         if (!team) {
             return res.status(404).json({ error: 'Команда не найдена' });
@@ -55,7 +55,7 @@ app.get('/api/teamCard/:teamId', async (req, res) => {
 
 app.get('/api/playerCard/:playerId', async (req, res) => {
     try {
-        const playerId = req.params.playerId; // получаем переменную из URL
+        const playerId = req.params.playerId;
         const player = await db.getPlayerCard(playerId);
         if (!player) {
             return res.status(404).json({ error: 'Игрок не найден' });
@@ -69,13 +69,11 @@ app.get('/api/playerCard/:playerId', async (req, res) => {
 
 app.post('/api/log', async (req, res) => {
     try {
-        const { userId, actionType, actionDetails } = req.body; // получаем данные из тела запроса
+        const { userId, actionType, actionDetails } = req.body;
         if (!userId || !actionType || !actionDetails) {
             return res.status(400).json({ error: 'Ошикбка в содержании логов' });
         }
         await db.addLog(userId, actionType, actionDetails);
-        //const newLog = 
-        //res.status(201).json(newLog);
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Ошибка сервера' });
@@ -243,19 +241,6 @@ app.post('/api/edit/player/addPlayer', upload.single('Photo'), async (req, res) 
                 Photo: Photo
             }
         });
-
-        // Имя файла, выбранное на клиенте
-        //console.log('Имя файла на клиенте:', req.file.originalname);
-
-        // Если вы передаете имя файла в теле запроса (например, req.body.filename), можно вывести и его:
-        /*
-        console.log('Имя игрока:', req.body.FirstName);
-        console.log('Фамилия игрока:', req.body.SecondName);
-        console.log('Отчество игрока:', req.body.ThirdName);
-        console.log('Возраст игрока:', req.body.Age);*/
-
-        // Отвечаем клиенту
-
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Ошибка сервера' });
@@ -269,15 +254,13 @@ app.post('/api/edit/player/removePlayer', uploadNone.none(), async (req, res) =>
             return res.status(400).json({ error: 'Ошикбка в содержании логов' });
         }
         const filePath = path.join(imagesPath, OldPhoto);
-        // Проверяем, существует ли файл
+
         if (fs.existsSync(filePath)) {
-            // Удаляем файл
             fs.unlinkSync(filePath);
         } else {
-            // Можно игнорировать, если файла нет, или вернуть ошибку
             console.warn('Файл для удаления не найден:', filePath);
         }
-        // Удаляем игрока из базы данных (пример для MongoDB)
+
         await db.removePlayer(PlayerId);
 
         res.json({ message: 'Данные удалены', data: { PlayerId: PlayerId, OldPhoto: OldPhoto } });
@@ -292,7 +275,6 @@ app.post('/api/edit/player/editDataPlayer', upload.single('Photo'), async (req, 
         const NewPhoto = req.file;
         const { PlayerId, FirstName, SecondName, ThirdName, Age, OldPhoto } = req.body;
 
-        // Если пришло новое фото и есть старое — удаляем старое с диска
         if (!PlayerId || !FirstName || !SecondName || !Age || !OldPhoto) {
             return res.status(400).json({ error: 'Ошикбка в содержании логов' });
         }
@@ -303,10 +285,8 @@ app.post('/api/edit/player/editDataPlayer', upload.single('Photo'), async (req, 
         }
         if (NewPhoto && OldPhoto) {
             const OldPhotoPath = path.join(imagesPath, OldPhoto);
-            //console.log('OldPhotoPath:', OldPhotoPath);
             fs.unlink(OldPhotoPath, (err) => {
                 if (err) console.error('Ошибка удаления старого фото:', err);
-                //else console.log('Старое фото удалено:', OldPhoto);
             });
         }
         const Photo = NewPhoto ? NewPhoto.filename : OldPhoto;

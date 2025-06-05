@@ -1,23 +1,10 @@
 const { Pool } = require('pg');
 const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,//'postgresql://postgres.yvpdbfltdhkgyleomnkz:123456@aws-0-eu-north-1.pooler.supabase.com:6543/postgres',//'postgresql://postgres:123456@localhost:5432/EsportInCompetition',
+    connectionString: process.env.DATABASE_URL,
     ssl: { rejectUnauthorized: false }
-    //process.env.DATABASE_URL ? { rejectUnauthorized: false } : false,
-    /*user: 'postgres',
-    host: 'localhost',
-    database: 'EsportInCompetition',
-    password: '123456',
-    port: 5432,*/
 });
 
-// Для адекватного отображения даты
-//.toISOString().split('T')[0]
-
-
 // Список команд
-//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-//Убрать сортировку по TeanId, возможно стоит сортировать по названию
-//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 async function getListTeams() {
     try {
         const res = await pool.query('SELECT "TeamId", "TeamName", "NumberWins", "NumberDefeats", "FrequencyWins"\
@@ -624,20 +611,6 @@ async function editDataMatch(MatchId, WinnerId, DateMatch, TeamId1, TeamId2, Sco
         throw err;
     }
 }
-
-/*(async () => {
-    const data = await getAllPlayers();
-    console.log(data);
-    //const rows = await getListTeams();
-    //console.log(rows);
-})();*/
-
-/*(async () => {
-    await removeCompetition(3);
-    console.log("Da");
-    //const rows = await getListTeams();
-    //console.log(rows);
-})();*/
 
 module.exports = {
     getTeamCard,
