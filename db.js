@@ -232,7 +232,10 @@ async function getAllPlayers() {
                 `${dicts[i]["SecondName"]} ${dicts[i]["FirstName"]} ${dicts[i]["ThirdName"]}`
                 :
                 `${dicts[i]["SecondName"]} ${dicts[i]["FirstName"]}`;
-            players.push({ 'PlayerId': dicts[i]['PlayerId'], 'FIO': fio, 'Photo': dicts[i]['Photo'], 'Age': dicts[i]['Age'] });
+            const Dates = await pool.query(`SELECT TO_CHAR("DateAdd", 'DD.MM.YYYY') AS "DateAdd", TO_CHAR("DateLeft", 'DD.MM.YYYY') AS "DateLeft"
+            FROM "Composition" c JOIN "Player" p ON p."PlayerId" = c."PlayerId"
+            WHERE c."PlayerId" = $1;`, [dicts[i]['PlayerId']]);
+            players.push({ 'PlayerId': dicts[i]['PlayerId'], 'FIO': fio, 'Photo': dicts[i]['Photo'], 'Age': dicts[i]['Age'], 'Dates': Dates.rows });
         }
         return players;
     } catch (err) {
@@ -240,7 +243,6 @@ async function getAllPlayers() {
         throw err;
     }
 }
-
 async function getCompetitionsForEditCompetition() {
     try {
         const res = await pool.query(`SELECT "CompetitionId", "CompetitionName", TO_CHAR("DateStart", 'DD.MM.YYYY') AS "DateStart"
@@ -324,13 +326,6 @@ async function editNameTeam(TeamId, NewTeamName) {
     }
 }
 
-/*
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-НЕОБХОДИМО СДЕЛАТЬ ПРОВЕРКУ НА ДОБАВЛЕНИЕ УЖЕ СУЩЕСТВУЮЩИХ ЗАПИСЕЙ
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-*/
 async function addPlayerInTeam(TeamId, PlayerId, DateAdd=null) {
     try {
         if (!DateAdd) {
@@ -624,7 +619,7 @@ async function editDataMatch(MatchId, WinnerId, DateMatch, TeamId1, TeamId2, Sco
 }
 
 /*(async () => {
-    const data = await getHistoryTeam(1);
+    const data = await getAllPlayers();
     console.log(data);
     //const rows = await getListTeams();
     //console.log(rows);
