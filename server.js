@@ -186,13 +186,13 @@ app.post('/api/edit/team/addPlayerInTeam', uploadNone.none(), async (req, res) =
 
 app.post('/api/edit/team/removePlayerFromTeam', uploadNone.none(), async (req, res) => {
     try {
-        const { TeamId, PlayerId, DateLeft } = req.body;
-        if (!TeamId || !PlayerId || !DateLeft) {
+        const { TeamId, PlayerId, DateLeft, DateAdd } = req.body;
+        if (!TeamId || !PlayerId || !DateLeft || !DateAdd) {
             return res.status(400).json({ error: 'Ошикбка в содержании логов' });
         }
-        await db.removePlayerFromTeam(TeamId, PlayerId, DateLeft);
+        await db.removePlayerFromTeam(TeamId, PlayerId, DateLeft, DateAdd);
 
-        res.json({ message: 'Игрок успешно удален из команды', data: { TeamId: TeamId, PlayerId: PlayerId, DateLeft: DateLeft } });
+        res.json({ message: 'Игрок успешно удален из команды', data: { TeamId: TeamId, PlayerId: PlayerId, DateLeft: DateLeft, DateAdd: DateAdd } });
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Ошибка сервера' });

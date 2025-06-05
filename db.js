@@ -341,11 +341,11 @@ async function addPlayerInTeam(TeamId, PlayerId, DateAdd=null) {
     }
 }
 
-async function removePlayerFromTeam(TeamId, PlayerId, DateLeft) {
+async function removePlayerFromTeam(TeamId, PlayerId, DateLeft, DateAdd) {
     try {
         await pool.query(`UPDATE "Composition"
             SET "DateLeft" = $3::date
-            WHERE "TeamId" = $1 AND "PlayerId" = $2;`, [TeamId, PlayerId, DateLeft]);
+            WHERE "TeamId" = $1 AND "PlayerId" = $2 AND "DateAdd" != $4;`, [TeamId, PlayerId, DateLeft, DateAdd]);
     } catch (err) {
         console.error('Ошибка при запросе к БД:', err);
         throw err;
