@@ -191,8 +191,13 @@ async function getPlayerHistoryInTeams(PlayerId) {
 */
 async function addLog(userId, actionType, actionDetails) {
     try {
+        const now = new Date();
+        const day = String(now.getDate()).padStart(2, '0');
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const year = now.getFullYear();
+        const date = `${year}-${month}-${day}`;
         await pool.query(`INSERT INTO "Log" ("userId", "timestamp", "actionType", "actionDetails")\
-            VALUES ($1, NOW(), $2, $3);`, [userId, actionType, actionDetails]);
+            VALUES ($1, $2, $3, $4);`, [userId, date, actionType, actionDetails]);
     } catch (err) {
         console.error('Ошибка при запросе к БД:', err);
         throw err;
