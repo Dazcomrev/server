@@ -333,14 +333,9 @@ async function editNameTeam(TeamId, NewTeamName) {
 */
 async function addPlayerInTeam(TeamId, PlayerId, DateAdd=null) {
     try {
-        const now = new Date();
-        const day = String(now.getDate()).padStart(2, '0');
-        const month = String(now.getMonth() + 1).padStart(2, '0');
-        const year = now.getFullYear();
-        const date = `${year}-${month}-${day}`;
         if (!DateAdd) {
             await pool.query(`INSERT INTO "Composition" ("TeamId", "PlayerId", "DateAdd", "DateLeft")
-            VALUES ($1, $2, $3, NULL);`, [TeamId, PlayerId, date]);
+            VALUES ($1, $2, NOW() AT TIME ZONE '-07', NULL);`, [TeamId, PlayerId]);
         } else {
             await pool.query(`INSERT INTO "Composition" ("TeamId", "PlayerId", "DateAdd", "DateLeft")
             VALUES ($1, $2, $3::date, NULL);`, [TeamId, PlayerId, DateAdd]);
